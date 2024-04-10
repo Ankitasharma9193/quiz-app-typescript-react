@@ -1,22 +1,31 @@
 import React, {useState} from 'react';
 import QuestionsCard from './components/QuestionsCard';
-import { fetchQuizzQuestions, Difficulty, QuestionState } from './API'
+import { fetchQuizzQuestions, Difficulty, QuestionState } from './API';
+// Styles
+import { GlobalStyle, Wrapper } from './App.styles';
 
 function App() {
+  type AnswerObject = {
+    questionNumber: number
+    isCorrect: boolean;
+    answerProvided: string;
+    correctAnswer: string;
+  }
+
+  const TOTAL_QUESTIONS = 10;
+
   const [loading, setLoading]  = useState(false); 
   const [questions, setQuestions] = useState<QuestionState[]>([]);
   const [number, setNumber] = useState(0);
-  const [userAnswers, setUserAnswers] = useState([]);
+  const [userAnswers, setUserAnswers] = useState<AnswerObject[]>([]);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(true);
-
-  const TOTAL_QUESTIONS = 10;
 
   const startQuizz = async () => {
     setLoading(true);
     setGameOver(false);
 
-    const newQuestions = await fetchQuizzQuestions(TOTAL_QUESTIONS, Difficulty.EASY );
+    const newQuestions = await fetchQuizzQuestions(TOTAL_QUESTIONS, Difficulty.MEDIUM );
     console.log(newQuestions);
     
     setScore(0);
@@ -26,12 +35,28 @@ function App() {
   };
 
   const checkAnswer = (e: React.MouseEvent<HTMLButtonElement>) => {
-    const ans = e.currentTarget.value
+ //   const ans = e.currentTarget.querySelector('span')?.textContent as string;
+    // const ans = e.currentTarget.querySelector('span')?.textContent ?? "";
+    const ans = e.currentTarget.value; // in the <button> if we put <button value={ans}> then can use this otherwise above
     const correctAnswer =  questions[number].correct_answer;
 
+    // console.log(`ans is`, e.currentTarget.querySelector('span')?.textContent);
+   let isCorrectorNot = ():boolean => ans===correctAnswer
     if(ans  === correctAnswer) {
       setScore(prevScore => prevScore +1)
+      // console.log(`scrore is : ${score}`);
     }
+    const answerObject: AnswerObject = {
+      questionNumber: number+1,
+      isCorrect: isCorrectorNot(),
+      answerProvided: ans,
+      correctAnswer:  correctAnswer,
+    }
+
+    setUserAnswers((prevAnswers) => [
+      ...prevAnswers,
+      answerObject
+    ]);
   }
 
   const nextQuestion = () => {
@@ -43,15 +68,20 @@ function App() {
   }
 
   return (
-    <div className="App">
+    <>
+     <GlobalStyle />
+     <Wrapper>
       <h1 > REACT QUIZZ</h1>
-      <button className='buttonClass' onClick={startQuizz}>
-        Start Quiz
-      </button>
+      { (gameOver && !loading) 
+        ? (<button className='buttonClass' onClick={startQuizz}>
+            Start Quiz
+          </button>) : null
+      }
 
       <p className='score'>Score: {score}</p>
-
+     {loading &&
       <p className='questions'>Loading Questions.....</p>
+     }
       { !loading && !gameOver && (
         <QuestionsCard 
           key = {number}
@@ -63,11 +93,14 @@ function App() {
           callback={checkAnswer} 
         /> )
       } 
-
-      <button className='nextQuestionButton' onClick={nextQuestion}>
-        Next Question!
-      </button>
-    </div>
+      { (!gameOver && !loading &&  0 <= number  && number <= TOTAL_QUESTIONS - 1) 
+        ? (<button className='nextQuestionButton' onClick={nextQuestion}>
+              Next Question!
+            </button>) 
+        : (<h3> Test Finish! </h3>)
+      }
+      </Wrapper>
+    </>
   );
 }
 
